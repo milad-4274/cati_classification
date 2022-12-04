@@ -185,7 +185,7 @@ class PyTorchTrainable(tune.Trainable):
             lr=config.get("learning_rate", 1e-4), 
             momentum=config.get("momentum", 0.9)
         )
-        self.exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.1, verbose=True)
+        self.exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.1)
         
         
     def _train_step(self):
