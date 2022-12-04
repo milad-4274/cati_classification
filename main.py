@@ -19,10 +19,10 @@ cudnn.benchmark = True
 plt.ion()   # interactive mode
 
 
-EPOCHS = 100
-save_name = "res_100_ce_sgd_b64_train_val_ilr001"
+EPOCHS = 1
+save_name = "res_1_ce_sgd_b64_train_val_ilr001"
 
-from data import MyDataset, data_transforms
+from data import MyDataset, load_data
 from training import train_model
 from utils import plot_confusion_matrix, imshow, visualize_model, compute_confusion_matrix, plot_train_info
 from losses import FocalLoss
@@ -30,34 +30,11 @@ from losses import FocalLoss
 
 
 batch_size = 64
-image_datasets = {}
 
 
-## for trainval folder
-# data_dir = 'train_val/'
-# image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
-#                                           data_transforms[x])
-#                   for x in ['train', 'val']}
+data_dir = "MYCATI"
 
-# class_names = image_datasets['train'].classes
-#_________________________________________________________________
-
-# for mycati folder
-data_dir = 'MYCATI'
-all_dataset = datasets.ImageFolder(data_dir)
-train_size = int(0.8 * len(all_dataset))
-test_size = len(all_dataset) - train_size
-image_datasets["train"], image_datasets["val"] = torch.utils.data.random_split(all_dataset, [train_size, test_size])
-
-image_datasets["train"] = MyDataset(image_datasets["train"],data_transforms["train"])
-
-image_datasets["val"] = MyDataset(image_datasets["val"],data_transforms["val"])
-class_names = all_dataset.classes
-
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
-                                             shuffle=True, num_workers=4)
-              for x in ['train', 'val']}
-dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+dataloaders, class_names, dataset_sizes = load_data(data_dir, batch_size)
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
