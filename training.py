@@ -107,6 +107,13 @@ class SimpleNet(nn.Module):
             num_ftrs = self.base_model.fc.in_features
         elif base_model == "vgg":
             self.base_model = torchvision.models.vgg16(pretrained=True,).features
+            avg_pool = nn.AdaptiveAvgPool2d((7, 7))
+            flatten = nn.Flatten(1)
+            self.base_model = nn.Sequential(
+                self.base_model,
+                avg_pool,
+                flatten
+            )
             num_ftrs = 512 * 7 * 7
         
         for param in self.base_model.parameters():
