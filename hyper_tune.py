@@ -40,7 +40,7 @@ analysis = tune.run(
     checkpoint_freq=3,    
     scheduler=scheduler,
     stop={"training_iteration": 5},
-    resources_per_trial={"cpu": 20, "gpu": 1}
+    resources_per_trial={"cpu": 2, "gpu": 0}
    
 
    
