@@ -156,7 +156,7 @@ class PyTorchTrainable(tune.Trainable):
         config: Ray config object that contains the hyperparams        
         """
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        print(self.device)
+        # print(self.device)
         # load data
         # self.train_data_loader, self.valid_data_loader = load_data(BATCH_SIZE, NUM_WORKERS)
         
