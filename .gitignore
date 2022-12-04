@@ -1,0 +1,7 @@
+MYCATI/
+train_val/
+__pycache__/
+*-001.zip
+
+
+res/*.pt
