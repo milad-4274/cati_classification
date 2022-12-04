@@ -1,0 +1,6 @@
+torch
+torchvision
+matplotlib
+ray[tune]
+scikit-learn
+seaborn
