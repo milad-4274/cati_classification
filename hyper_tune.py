@@ -4,8 +4,31 @@ from training import PyTorchTrainable
 import ray
 import torch.nn as nn
 from data import load_data
-
+import argparse
 import os
+import torch
+
+gpu_n = 0
+cpu_n = 0
+
+
+parser = argparse.ArgumentParser(
+                    prog = 'Hyperparameter Tuning',
+                    description = 'check different hyperparameters using ray tune and pytorch',
+                    epilog = 'you can change only number of cpus and gpus using command line.')
+
+
+parser.add_argument('cpu', type=int, description="number of cpus to use for processing", default=2)           # positional argument
+parser.add_argument('gpu', type=int, description="number of gpus to use for processing", default=2)           # positional argument
+
+
+args = parser.parse_args()
+if args.gpu > 0:
+    if not torch.cuda.is_availabel():
+        print("no gpu provided, continue using cpus")
+        gpu_n = 0
+cpu_n = args.cpu
+
 
 config = {
     "hidden_units": tune.grid_search([ 64, 128, 256]),
@@ -41,7 +64,7 @@ analysis = tune.run(
     checkpoint_freq=3,    
     scheduler=scheduler,
     stop={"training_iteration": 50},
-    resources_per_trial={"cpu": 2, "gpu": 1}
+    resources_per_trial={"cpu": cpu_n, "gpu": gpu_n}
    
 
    
