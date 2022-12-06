@@ -18,13 +18,13 @@ parser = argparse.ArgumentParser(
                     epilog = 'you can change only number of cpus and gpus using command line.')
 
 
-parser.add_argument('--cpu', type=int, help="number of cpus to use for processing", default=2, )           # positional argument
-parser.add_argument('--gpu', type=int, help="number of gpus to use for processing", default=1, required=False)           # positional argument
+parser.add_argument('--cpu', type=int, help="number of cpus to use for processing", default=2)           # positional argument
+parser.add_argument('--gpu', type=int, help="number of gpus to use for processing", default=1)           # positional argument
 
 
 args = parser.parse_args()
 if args.gpu > 0:
-    if not torch.cuda.is_availabel():
+    if not torch.cuda.is_available():
         print("no gpu provided, continue using cpus")
         gpu_n = 0
 cpu_n = args.cpu
