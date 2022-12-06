@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(
 
 
 parser.add_argument('cpu', type=int, description="number of cpus to use for processing", default=2)           # positional argument
-parser.add_argument('gpu', type=int, description="number of gpus to use for processing", default=2)           # positional argument
+parser.add_argument('gpu', type=int, description="number of gpus to use for processing", default=1)           # positional argument
 
 
 args = parser.parse_args()
