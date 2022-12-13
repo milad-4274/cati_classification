@@ -33,6 +33,8 @@ if args.gpu > 0:
     if not torch.cuda.is_available():
         print("no gpu provided, continue using cpus")
         gpu_n = 0
+    else:
+        gpu_n = args.gpu
 cpu_n = args.cpu
 
 # gpu_n = 1
