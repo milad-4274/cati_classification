@@ -85,7 +85,8 @@ criterion = nn.CrossEntropyLoss().to(device)
 
 # Observe that only parameters of final layer are being optimized as
 # opposed to before.
-optimizer_conv = optim.SGD(resnet18.fc.parameters(), lr=0.00220135, momentum=0.708253)
+# optimizer_conv = optim.SGD(resnet18.fc.parameters(), lr=0.01, momentum=0.9)
+optimizer_conv = optim.SGD(resnet18.fc.parameters(), lr=0.00476252, momentum=0.779798)
 # optimizer_conv = optim.Adam(resnet18.fc.parameters(), lr=0.001, betas=(0.9, 0.999))
 
 # Decay LR by a factor of 0.1 every 7 epochs
