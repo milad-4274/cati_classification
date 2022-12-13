@@ -213,12 +213,14 @@ class PyTorchTrainable(tune.Trainable):
                 # track losses
                 epoch_loss += loss.item()
 
-                running_corrects += torch.sum(preds == labels).item()
+                # running_corrects += torch.sum(preds == labels).item()
+                running_corrects += torch.sum(preds == labels.data)
         # self.exp_lr_scheduler.step()
                 
         loss = epoch_loss/len(self.train_data_loader)
-        corrects = running_corrects/len(self.train_data_loader)
-        return loss, corrects
+        # corrects = running_corrects/len(self.train_data_loader)
+        epoch_acc = running_corrects.double() / len(self.train_data_loader)
+        return loss, epoch_acc
     
     def _test_step(self):
         """Single test loop
@@ -237,11 +239,13 @@ class PyTorchTrainable(tune.Trainable):
                 loss = self.criterion(outputs, labels)
                 epoch_loss += loss.item()
                 # predicted = torch.argmax(torch.softmax(preds,dim=1),dim=1)
-                running_corrects += torch.sum(preds == labels).item()
+                # running_corrects += torch.sum(preds == labels).item()
+                running_corrects += torch.sum(preds == labels.data)
                     
-            corrects = running_corrects/len(self.valid_data_loader)
+            # corrects = running_corrects/len(self.valid_data_loader)
+            epoch_acc = running_corrects.double() / len(self.valid_data_loader)
             loss = epoch_loss/len(self.valid_data_loader)
-            return corrects, loss
+            return epoch_acc, loss
     
     def step(self):
         """Single training step
