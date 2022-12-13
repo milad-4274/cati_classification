@@ -50,7 +50,7 @@ search_space = {
     "momentum": tune.uniform(0.1, 0.9),
     # "base_model": tune.choice(["vgg", "resnet"]),
     "base_model": tune.choice([ "resnet"]),
-    "loss": tune.choice(["focal", "cross"]),
+    "loss": tune.choice(["cross"]),
 
 }
 
