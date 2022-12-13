@@ -211,10 +211,10 @@ class PyTorchTrainable(tune.Trainable):
                 loss.backward()
                 self.optimizer.step()
                 # track losses
-                epoch_loss += loss.item()
+            epoch_loss += loss.item() * images.size(0)
 
-                # running_corrects += torch.sum(preds == labels).item()
-                running_corrects += torch.sum(preds == labels.data)
+            # running_corrects += torch.sum(preds == labels).item()
+            running_corrects += torch.sum(preds == labels.data)
         # self.exp_lr_scheduler.step()
                 
         loss = epoch_loss/len(self.train_data_loader)
@@ -226,9 +226,9 @@ class PyTorchTrainable(tune.Trainable):
         """Single test loop
         """        
         epoch_loss = 0
+        running_corrects = 0
         # set to model to eval mode
         self.model.eval()
-        running_corrects = 0
         with torch.inference_mode():
             for images, labels  in self.valid_data_loader:
                 images = images.to(self.device)
