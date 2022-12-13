@@ -35,8 +35,11 @@ if args.gpu > 0:
         gpu_n = 0
 cpu_n = args.cpu
 
-gpu_n = 1
-cpu_n = 10
+# gpu_n = 1
+# cpu_n = 10
+
+print(f"using {cpu_n} number of CPU core and {gpu_n} GPU(s)")
+
 search_space = {
     # "hidden_units": tune.grid_search([ 512, 128, 256]),
     # "drop_rate": tune.uniform(0.0, 0.8),
