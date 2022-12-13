@@ -229,23 +229,23 @@ class PyTorchTrainable(tune.Trainable):
         running_corrects = 0
         # set to model to eval mode
         self.model.eval()
-        with torch.inference_mode():
-            for images, labels  in self.valid_data_loader:
-                images = images.to(self.device)
-                labels = labels.to(self.device)
+        for images, labels  in self.valid_data_loader:
+            images = images.to(self.device)
+            labels = labels.to(self.device)
+            with torch.inference_mode():
                 outputs = self.model(images)
                 _, preds = torch.max(outputs, 1)
                 # preds = self.model(images)
                 loss = self.criterion(outputs, labels)
-                epoch_loss += loss.item()
-                # predicted = torch.argmax(torch.softmax(preds,dim=1),dim=1)
-                # running_corrects += torch.sum(preds == labels).item()
-                running_corrects += torch.sum(preds == labels.data)
+            epoch_loss += loss.item() * images.size(0)
+            # predicted = torch.argmax(torch.softmax(preds,dim=1),dim=1)
+            # running_corrects += torch.sum(preds == labels).item()
+            running_corrects += torch.sum(preds == labels.data)
                     
             # corrects = running_corrects/len(self.valid_data_loader)
-            epoch_acc = running_corrects.double() / len(self.valid_data_loader)
-            loss = epoch_loss/len(self.valid_data_loader)
-            return epoch_acc, loss
+        epoch_acc = running_corrects.double() / len(self.valid_data_loader)
+        loss = epoch_loss/len(self.valid_data_loader)
+        return epoch_acc, loss
     
     def step(self):
         """Single training step
