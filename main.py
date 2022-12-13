@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 import time
 import os
 import copy
-import seaborn as sns
+# import seaborn as sns
 import matplotlib.pyplot as plt
 
 cudnn.benchmark = True
 plt.ion()   # interactive mode
 
 
-EPOCHS = 1
+EPOCHS = 30
 save_name = "res_1_ce_sgd_b64_train_val_ilr001"
 
 from data import MyDataset, load_data
@@ -29,12 +29,12 @@ from losses import FocalLoss
 
 
 
-batch_size = 64
+batch_size = 32
 
 
 data_dir = "MYCATI"
 
-dataloaders, class_names, dataset_sizes = load_data(data_dir, batch_size)
+dataloaders, class_names, dataset_sizes = load_data(batch_size)
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

@@ -9,6 +9,7 @@ import torch.nn as nn
 from losses import FocalLoss
 from torch.optim import lr_scheduler
 import os
+from data import load_data
 
 
 
@@ -161,7 +162,8 @@ class PyTorchTrainable(tune.Trainable):
         # self.train_data_loader, self.valid_data_loader = load_data(BATCH_SIZE, NUM_WORKERS)
         
         # self.train_data_loader, self.valid_data_loader = self.trainable_data_loaderp["train"], self.trainable_data_loader["val"]
-        self.train_data_loader, self.valid_data_loader = config["data"][0]["train"], config["data"][0]["val"]
+        data_loader = load_data(32)[0]
+        self.train_data_loader, self.valid_data_loader= data_loader["train"], data_loader["val"]
         # create model        
         # base_model = torchvision.models.resnet50(pretrained=True)
         # for param in base_model.parameters():
@@ -171,7 +173,7 @@ class PyTorchTrainable(tune.Trainable):
         drop_rate = config.get("drop_rate", 0.0)        
         activation = config.get("activation", nn.ReLU(True))        
         base_model = config.get("base_model")
-        use_classifier = config.get("use_classifier")
+        use_classifier = config.get("use_classifier", False)
         loss = config.get("loss")
         
         # self.model = SimpleNet(base_model, 2048, num_units, drop_rate, activation)
@@ -185,7 +187,7 @@ class PyTorchTrainable(tune.Trainable):
             lr=config.get("learning_rate", 1e-4), 
             momentum=config.get("momentum", 0.9)
         )
-        self.exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.1)
+        # self.exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.1)
         
         
     def _train_step(self):
@@ -201,15 +203,18 @@ class PyTorchTrainable(tune.Trainable):
             labels = labels.to(self.device)
 
             self.optimizer.zero_grad()
+            
             with torch.set_grad_enabled(True):
-                preds = self.model(images)
-                loss = self.criterion(preds, labels)
+                outputs = self.model(images)
+                _, preds = torch.max(outputs, 1)
+                loss = self.criterion(outputs, labels)
+                loss.backward()
                 self.optimizer.step()
                 # track losses
                 epoch_loss += loss.item()
-                _, predicted = torch.max(preds.data, 1)
-                running_corrects += torch.sum(predicted == labels).item()
-        self.exp_lr_scheduler.step()
+
+                running_corrects += torch.sum(preds == labels).item()
+        # self.exp_lr_scheduler.step()
                 
         loss = epoch_loss/len(self.train_data_loader)
         corrects = running_corrects/len(self.train_data_loader)
@@ -218,29 +223,37 @@ class PyTorchTrainable(tune.Trainable):
     def _test_step(self):
         """Single test loop
         """        
+        epoch_loss = 0
         # set to model to eval mode
         self.model.eval()
         running_corrects = 0
-        for images, labels  in self.train_data_loader:
-            images = images.to(self.device)
-            labels = labels.to(self.device)
-            preds = self.model(images)
-            loss = self.criterion(preds, labels)
-            _, predicted = torch.max(preds.data, 1)
-            running_corrects += torch.sum(predicted == labels).item()
-                
-        corrects = running_corrects/len(self.valid_data_loader)
-        return corrects
+        with torch.inference_mode():
+            for images, labels  in self.valid_data_loader:
+                images = images.to(self.device)
+                labels = labels.to(self.device)
+                outputs = self.model(images)
+                _, preds = torch.max(outputs, 1)
+                # preds = self.model(images)
+                loss = self.criterion(outputs, labels)
+                epoch_loss += loss.item()
+                # predicted = torch.argmax(torch.softmax(preds,dim=1),dim=1)
+                running_corrects += torch.sum(preds == labels).item()
+                    
+            corrects = running_corrects/len(self.valid_data_loader)
+            loss = epoch_loss/len(self.valid_data_loader)
+            return corrects, loss
     
     def step(self):
         """Single training step
         """
         train_loss, train_acc = self._train_step()
-        test_acc = self._test_step()
+        test_acc, test_loss = self._test_step()
+
         return {
-            "train_loss": train_loss, 
-            "train_accuracy": train_acc,
-            "mean_accuracy": test_acc
+            "trloss": train_loss,
+            "tr_acc": train_acc,
+            "tst_acc": test_acc,
+            "tst_loss": test_loss
         }
 
     def save_checkpoint(self, dirname):

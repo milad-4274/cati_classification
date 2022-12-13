@@ -1,25 +1,31 @@
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from training import PyTorchTrainable
-import ray
-import torch.nn as nn
-from data import load_data
-import argparse
-import os
-import torch
+from ray.tune import CLIReporter
+# import ray
+# import torch.nn as nn
 
+import argparse
+# import os
+import torch
+from ray.tune.search.hyperopt import HyperOptSearch
+from ray import air
 gpu_n = 0
 cpu_n = 0
 
 
 parser = argparse.ArgumentParser(
-                    prog = 'Hyperparameter Tuning',
-                    description = 'check different hyperparameters using ray tune and pytorch',
-                    epilog = 'you can change only number of cpus and gpus using command line.')
+    prog='Hyperparameter Tuning',
+    description='check different hyperparameters using ray tune and pytorch',
+    epilog='you can change only number of cpus and gpus using command line.')
 
 
-parser.add_argument('--cpu', type=int, help="number of cpus to use for processing", default=2)           # positional argument
-parser.add_argument('--gpu', type=int, help="number of gpus to use for processing", default=1)           # positional argument
+# positional argument
+parser.add_argument('--cpu', type=int,
+                    help="number of cpus to use for processing", default=2)
+# positional argument
+parser.add_argument('--gpu', type=int,
+                    help="number of gpus to use for processing", default=1)
 
 
 args = parser.parse_args()
@@ -29,17 +35,17 @@ if args.gpu > 0:
         gpu_n = 0
 cpu_n = args.cpu
 
-
-config = {
-    "hidden_units": tune.grid_search([ 64, 128, 256]),
-    "drop_rate": tune.uniform(0.0, 0.8),
-    "activation": tune.choice([nn.ReLU(True), nn.ELU(True), nn.SELU(True)]),
-    "learning_rate": tune.loguniform(1e-4, 1e-1),
+gpu_n = 1
+cpu_n = 10
+search_space = {
+    # "hidden_units": tune.grid_search([ 512, 128, 256]),
+    # "drop_rate": tune.uniform(0.0, 0.8),
+    # "activation": tune.choice([nn.ReLU(True), nn.ELU(True), nn.SELU(True)]),
+    "learning_rate": tune.loguniform(1e-3, 1e-1),
     "momentum": tune.uniform(0.1, 0.9),
-    "data" : load_data(os.path.join(os.path.abspath(os.getcwd()),"MYCATI/"),64),
-    "base_model": tune.choice(["vgg","resnet"]),
-    "use_classifier": tune.choice([True,False]),
-    "loss": tune.choice(["focal","cross"]),
+    # "base_model": tune.choice(["vgg", "resnet"]),
+    "base_model": tune.choice([ "resnet"]),
+    "loss": tune.choice(["focal", "cross"]),
 
 }
 
@@ -47,26 +53,36 @@ config = {
 scheduler = ASHAScheduler(metric="mean_accuracy", mode="max")
 
 
+search_alg = HyperOptSearch()
 
-from datetime import datetime
-from time import time
-ray.shutdown()
+if gpu_n > 0:
+    trainable = tune.with_resources(
+        PyTorchTrainable, {"gpu": gpu_n, "cpu": cpu_n})
+else:
+    trainable = PyTorchTrainable
 
-# ray.init(dashboard_host="0.0.0.0")
 
-start = time()
-# run trials
-analysis = tune.run(
-    PyTorchTrainable,
-    config=config,
-    num_samples=15, # runs 15 jobs with separate sample from the search space
-    checkpoint_at_end=True,
-    checkpoint_freq=3,    
-    scheduler=scheduler,
-    stop={"training_iteration": 50},
-    resources_per_trial={"cpu": cpu_n, "gpu": gpu_n}
-   
+reporter = CLIReporter(max_progress_rows=50)
+metric_list = ["trloss", "tr_acc", "tst_acc", "tst_loss"]
+for metric in metric_list:
+    reporter.add_metric_column(metric)
 
-   
+
+tuner = tune.Tuner(
+    trainable,
+    param_space=search_space,
+    tune_config=tune.TuneConfig(
+        num_samples=5,
+        metric="tst_loss",
+        mode="min",
+        max_concurrent_trials=10,
+        search_alg=search_alg
+    ),
+    run_config=air.RunConfig(
+        progress_reporter=reporter,
+        stop=tune.stopper.MaximumIterationStopper(50)
+        )
 )
-stop = time()
+
+
+results = tuner.fit()

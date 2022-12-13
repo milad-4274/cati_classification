@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from torchvision import  transforms, datasets
+import os
 
 
 class MyDataset(Dataset):
@@ -21,8 +22,10 @@ class MyDataset(Dataset):
         return len(self.subset)
 
 
-def load_data(data_dir,batch_size=32, num_workers=4 ):
+def load_data(batch_size=32, num_workers=4 ):
 
+    # data_dir = os.path.join(os.path.abspath(os.getcwd()),"MYCATI/")
+    data_dir = os.path.join("/home/mtcv/Desktop/milad/rafail","MYCATI/")
     data_transforms = {
         
         'train': transforms.Compose([
