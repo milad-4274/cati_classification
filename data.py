@@ -24,8 +24,8 @@ class MyDataset(Dataset):
 
 def load_data(batch_size=32, num_workers=4 ):
 
-    # data_dir = os.path.join(os.path.abspath(os.getcwd()),"MYCATI/")
-    data_dir = os.path.join("/home/mtcv/Desktop/milad/rafail","MYCATI/")
+    data_dir = os.path.join(os.path.abspath(os.getcwd()),"MYCATI/")
+    # data_dir = os.path.join("/home/mtcv/Desktop/milad/rafail","MYCATI/")
     data_transforms = {
         
         'train': transforms.Compose([
