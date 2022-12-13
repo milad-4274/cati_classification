@@ -24,7 +24,8 @@ class MyDataset(Dataset):
 
 def load_data(batch_size=32, num_workers=4 ):
 
-    data_dir = os.path.join(os.path.abspath(os.getcwd()),"MYCATI/")
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    data_dir = os.path.join(dir_path,"MYCATI/")
     # data_dir = os.path.join("/home/mtcv/Desktop/milad/rafail","MYCATI/")
     data_transforms = {
         
