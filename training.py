@@ -134,12 +134,12 @@ class SimpleNet(nn.Module):
                 self.fc1
             )
         else:
-            self.model = self.base_model
+            # self.model = copy.deepcopy(self.base_model)
             
-            self.model.fc = nn.Linear(num_ftrs, 3)
+            self.base_model.fc = nn.Linear(num_ftrs, 3)
         
     def forward(self, x):
-        x = self.model(x)
+        x = self.base_model(x)
         return x
 
 class PyTorchTrainable(tune.Trainable):
@@ -162,8 +162,8 @@ class PyTorchTrainable(tune.Trainable):
         # self.train_data_loader, self.valid_data_loader = load_data(BATCH_SIZE, NUM_WORKERS)
         
         # self.train_data_loader, self.valid_data_loader = self.trainable_data_loaderp["train"], self.trainable_data_loader["val"]
-        data_loader = load_data(32)[0]
-        self.train_data_loader, self.valid_data_loader= data_loader["train"], data_loader["val"]
+        self.data_loader, self.class_names, self.dataset_size = load_data(32)
+        self.train_data_loader, self.valid_data_loader= self.data_loader["train"], self.data_loader["val"]
         # create model        
         # base_model = torchvision.models.resnet50(pretrained=True)
         # for param in base_model.parameters():
@@ -171,22 +171,31 @@ class PyTorchTrainable(tune.Trainable):
         # NN config
         num_units = config.get("hidden_units", 128)                    
         drop_rate = config.get("drop_rate", 0.0)        
-        activation = config.get("activation", nn.ReLU(True))        
-        base_model = config.get("base_model")
+        activation = config.get("activation", nn.ReLU())        
+        base_model = config.get("base_model","resnet")
         use_classifier = config.get("use_classifier", False)
-        loss = config.get("loss")
+        loss = config.get("loss", "cross")
         
         # self.model = SimpleNet(base_model, 2048, num_units, drop_rate, activation)
         self.model = SimpleNet(base_model, use_classifier, num_units, drop_rate, activation)
         self.model.to(self.device)
+
+
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(dir_path,"running_model.txt"), "w") as f:
+            f.write(self.model.__repr__())
+
         # optimizer & loss
         # self.criterion = nn.CrossEntropyLoss()
         self.criterion = nn.CrossEntropyLoss() if loss == "cross" else FocalLoss()
         self.optimizer = torch.optim.SGD(
             self.model.parameters(), 
-            lr=config.get("learning_rate", 1e-4), 
+            lr=config.get("learning_rate", 1e-2), 
             momentum=config.get("momentum", 0.9)
         )
+
+        with open(os.path.join(dir_path,"running_lossoptim.txt"), "w") as f:
+            f.write(self.criterion.__repr__() + "\n" + self.optimizer.__repr__())
         # self.exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=20, gamma=0.1)
         
         
@@ -194,64 +203,126 @@ class PyTorchTrainable(tune.Trainable):
         """Single training loop
         """
         # set to the model train mode
+
         self.model.train()
-        epoch_loss = 0
+
+        running_loss = 0.0
         running_corrects = 0
-        
-        for images, labels  in self.train_data_loader:
-            images = images.to(self.device)
+
+        for inputs, labels in self.train_data_loader:
+            inputs = inputs.to(self.device)
             labels = labels.to(self.device)
 
             self.optimizer.zero_grad()
-            
+
             with torch.set_grad_enabled(True):
-                outputs = self.model(images)
-                _, preds = torch.max(outputs, 1)
+                outputs = self.model(inputs)
+                _, preds = torch.max(outputs,1)
                 loss = self.criterion(outputs, labels)
+
                 loss.backward()
                 self.optimizer.step()
-                # track losses
-            epoch_loss += loss.item() * images.size(0)
 
-            # running_corrects += torch.sum(preds == labels).item()
+            running_loss += loss.item() * inputs.size(0)
             running_corrects += torch.sum(preds == labels.data)
-        # self.exp_lr_scheduler.step()
+
+        epoch_loss = running_loss / self.dataset_size["train"] ## need to be checked
+        epoch_acc = running_corrects.double() / self.dataset_size["train"] ## need to check size
+
+        
+
+        print(f'Train Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+
+        return epoch_loss, epoch_acc.item()
+
+
+        # self.model.train()
+        # epoch_loss = 0
+        # running_corrects = 0
+        
+        # for images, labels  in self.train_data_loader:
+        #     images = images.to(self.device)
+        #     labels = labels.to(self.device)
+
+        #     self.optimizer.zero_grad()
+            
+        #     with torch.set_grad_enabled(True):
+        #         outputs = self.model(images)
+        #         _, preds = torch.max(outputs, 1)
+        #         loss = self.criterion(outputs, labels)
+        #         loss.backward()
+        #         self.optimizer.step()
+        #         # track losses
+        #     epoch_loss += loss.item() * images.size(0)
+
+        #     # running_corrects += torch.sum(preds == labels).item()
+        #     running_corrects += torch.sum(preds == labels.data)
+        # # self.exp_lr_scheduler.step()
                 
-        loss = epoch_loss/len(self.train_data_loader)
-        # corrects = running_corrects/len(self.train_data_loader)
-        epoch_acc = running_corrects.double() / len(self.train_data_loader)
-        return loss, epoch_acc
+        # loss = epoch_loss/len(self.train_data_loader)
+        # # corrects = running_corrects/len(self.train_data_loader)
+        # epoch_acc = running_corrects.double() / len(self.train_data_loader)
+        # return loss, epoch_acc
     
     def _test_step(self):
         """Single test loop
         """        
-        epoch_loss = 0
-        running_corrects = 0
-        # set to model to eval mode
-        self.model.eval()
-        for images, labels  in self.valid_data_loader:
-            images = images.to(self.device)
-            labels = labels.to(self.device)
-            with torch.inference_mode():
-                outputs = self.model(images)
-                _, preds = torch.max(outputs, 1)
-                # preds = self.model(images)
-                loss = self.criterion(outputs, labels)
-            epoch_loss += loss.item() * images.size(0)
-            # predicted = torch.argmax(torch.softmax(preds,dim=1),dim=1)
-            # running_corrects += torch.sum(preds == labels).item()
-            running_corrects += torch.sum(preds == labels.data)
+        # epoch_loss = 0
+        # running_corrects = 0
+        # # set to model to eval mode
+        # self.model.eval()
+        # for images, labels  in self.valid_data_loader:
+        #     images = images.to(self.device)
+        #     labels = labels.to(self.device)
+        #     with torch.inference_mode():
+        #         outputs = self.model(images)
+        #         _, preds = torch.max(outputs, 1)
+        #         # preds = self.model(images)
+        #         loss = self.criterion(outputs, labels)
+        #     epoch_loss += loss.item() * images.size(0)
+        #     # predicted = torch.argmax(torch.softmax(preds,dim=1),dim=1)
+        #     # running_corrects += torch.sum(preds == labels).item()
+        #     running_corrects += torch.sum(preds == labels.data)
                     
-            # corrects = running_corrects/len(self.valid_data_loader)
-        epoch_acc = running_corrects.double() / len(self.valid_data_loader)
-        loss = epoch_loss/len(self.valid_data_loader)
-        return epoch_acc, loss
+        #     # corrects = running_corrects/len(self.valid_data_loader)
+        # epoch_acc = running_corrects.double() / len(self.valid_data_loader)
+        # loss = epoch_loss/len(self.valid_data_loader)
+        # return epoch_acc, loss
+
+        self.model.eval()
+
+        running_loss = 0.0
+        running_corrects = 0
+
+        for inputs, labels in self.valid_data_loader:
+            inputs = inputs.to(self.device)
+            labels = labels.to(self.device)
+
+            self.optimizer.zero_grad()
+
+            with torch.inference_mode():
+                outputs = self.model(inputs)
+                _, preds = torch.max(outputs,1)
+                loss = self.criterion(outputs, labels)
+
+
+            running_loss += loss.item() * inputs.size(0)
+            running_corrects += torch.sum(preds == labels.data)
+
+        epoch_loss = running_loss / self.dataset_size["val"] ## need to be checked
+        epoch_acc = running_corrects.double() / self.dataset_size["val"] ## need to check size
+
+        
+
+        print(f'Test Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+        # print(type(epoch_acc),"epoch acc type")
+        return epoch_loss, epoch_acc.item()
     
     def step(self):
         """Single training step
         """
         train_loss, train_acc = self._train_step()
-        test_acc, test_loss = self._test_step()
+        test_loss, test_acc  = self._test_step()
 
         return {
             "trloss": train_loss,
@@ -279,4 +350,9 @@ class PyTorchTrainable(tune.Trainable):
             checkpoint_path: load the model from this path
         """
         self.model.load_state_dict(torch.load(checkpoint_path))
+
+    def get_model(self):
+        return self.model
+
+    
 

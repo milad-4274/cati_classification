@@ -19,7 +19,7 @@ cudnn.benchmark = True
 plt.ion()   # interactive mode
 
 
-EPOCHS = 30
+EPOCHS = 50
 save_name = "res_1_ce_sgd_b64_train_val_ilr001"
 
 from data import MyDataset, load_data
@@ -89,7 +89,7 @@ optimizer_conv = optim.SGD(resnet18.fc.parameters(), lr=0.01, momentum=0.9)
 # optimizer_conv = optim.Adam(resnet18.fc.parameters(), lr=0.001, betas=(0.9, 0.999))
 
 # Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=20, gamma=0.1, verbose=True)
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=20, gamma=1, verbose=True)
 
 
 from PIL import Image, ImageFile
