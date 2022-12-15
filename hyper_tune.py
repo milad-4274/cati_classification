@@ -82,7 +82,12 @@ tuner = tune.Tuner(
     ),
     run_config=air.RunConfig(
         progress_reporter=reporter,
-        stop=tune.stopper.MaximumIterationStopper(100)
+        
+        stop=tune.stopper.CombinedStopeer(
+            tune.stopper.MaximumIterationStopper(100)
+            tune.stopper.TrialPlateauStopper(metric="my_metric")
+        )
+        
         )
 )
 
