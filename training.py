@@ -91,9 +91,9 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
 
 
-class SimpleNet(nn.Module):
+class Resnet(nn.Module):
     """Simple Neural Network"""
-    def __init__(self, base_model, use_classifier, num_units, drop_rate, activation):
+    def __init__(self):
         """
         Parameters:
             base_model: Backbone/Pretrained Neural Network
@@ -102,20 +102,11 @@ class SimpleNet(nn.Module):
             drop_rate: Dropout rate
             activation: Activation of hidden unit
         """
-        super(SimpleNet, self).__init__()
-        if base_model == "resnet":
-            self.base_model = torchvision.models.resnet18(pretrained=True)
-            num_ftrs = self.base_model.fc.in_features
-        elif base_model == "vgg":
-            self.base_model = torchvision.models.vgg16(pretrained=True,).features
-            avg_pool = nn.AdaptiveAvgPool2d((7, 7))
-            flatten = nn.Flatten(1)
-            self.base_model = nn.Sequential(
-                self.base_model,
-                avg_pool,
-                flatten
-            )
-            num_ftrs = 512 * 7 * 7
+        super(Resnet, self).__init__()
+
+        self.base_model = torchvision.models.resnet18(pretrained=True)
+        num_ftrs = self.base_model.fc.in_features
+
         
         for param in self.base_model.parameters():
             param.requires_grad = False        
@@ -124,15 +115,7 @@ class SimpleNet(nn.Module):
         # num_ftrs = self.base_model.fc.in_features
         # self.base_model = base_model
         # FC will be set as requires_grad=True by default
-        if use_classifier:
-            self.base_model.fc = nn.Linear(num_ftrs, num_units)
-            self.drop1 = nn.Dropout(p=drop_rate)
-            self.fc1 = nn.Linear(num_units, 3)
-            self.model = nn.Sequential(
-                self.base_model,
-                activation,
-                self.fc1
-            )
+
         else:
             # self.model = copy.deepcopy(self.base_model)
             
@@ -141,6 +124,33 @@ class SimpleNet(nn.Module):
     def forward(self, x):
         x = self.base_model(x)
         return x
+
+class VGG16(nn.Module):
+    def __init__(self, num_units, drop_rate, activation):
+        super(self).__init__()
+
+        self.base_model = torchvision.models.vgg16(pretrained=True,).features
+        avg_pool = nn.AdaptiveAvgPool2d((7, 7))
+        flatten = nn.Flatten(1)
+        self.base_model = nn.Sequential(
+            self.base_model,
+            avg_pool,
+            flatten
+        )
+        num_ftrs = 512 * 7 * 7
+
+
+        self.base_model.fc = nn.Linear(num_ftrs, num_units)
+        self.drop1 = nn.Dropout(p=drop_rate)
+        self.fc1 = nn.Linear(num_units, 3)
+        self.model = nn.Sequential(
+            self.base_model,
+            activation,
+            self.fc1
+        )
+
+    def forward(self,x):
+        return self.base_model(x)
 
 class PyTorchTrainable(tune.Trainable):
 
@@ -156,7 +166,7 @@ class PyTorchTrainable(tune.Trainable):
         ----------
         config: Ray config object that contains the hyperparams        
         """
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # print(self.device)
         # load data
         # self.train_data_loader, self.valid_data_loader = load_data(BATCH_SIZE, NUM_WORKERS)
@@ -164,34 +174,38 @@ class PyTorchTrainable(tune.Trainable):
         # self.train_data_loader, self.valid_data_loader = self.trainable_data_loaderp["train"], self.trainable_data_loader["val"]
         self.data_loader, self.class_names, self.dataset_size = load_data(32)
         self.train_data_loader, self.valid_data_loader= self.data_loader["train"], self.data_loader["val"]
-        # create model        
-        # base_model = torchvision.models.resnet50(pretrained=True)
-        # for param in base_model.parameters():
-        #     param.requires_grad = False        
-        # NN config
+
+
         num_units = config.get("hidden_units", 128)                    
         drop_rate = config.get("drop_rate", 0.0)        
         activation = config.get("activation", nn.ReLU())        
         base_model = config.get("base_model","resnet")
-        use_classifier = config.get("use_classifier", False)
         loss = config.get("loss", "cross")
-        
-        # self.model = SimpleNet(base_model, 2048, num_units, drop_rate, activation)
-        self.model = SimpleNet(base_model, use_classifier, num_units, drop_rate, activation)
+        lr=config.get("learning_rate", 1e-2), 
+        momentum=config.get("momentum", 0.9)
+
+
+        model_mapper = {
+            "resnet": Resnet(),
+            "vgg": VGG16(num_units,drop_rate, activation)
+        }
+
+
+        self.model = model_mapper(base_model)
         self.model.to(self.device)
 
+        print("model", self.model)
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path,"running_model.txt"), "w") as f:
             f.write(self.model.__repr__())
 
-        # optimizer & loss
-        # self.criterion = nn.CrossEntropyLoss()
+
         self.criterion = nn.CrossEntropyLoss() if loss == "cross" else FocalLoss()
         self.optimizer = torch.optim.SGD(
             self.model.parameters(), 
-            lr=config.get("learning_rate", 1e-2), 
-            momentum=config.get("momentum", 0.9)
+            lr=lr, 
+            momentum=momentum
         )
 
         with open(os.path.join(dir_path,"running_lossoptim.txt"), "w") as f:
@@ -236,58 +250,10 @@ class PyTorchTrainable(tune.Trainable):
         return epoch_loss, epoch_acc.item()
 
 
-        # self.model.train()
-        # epoch_loss = 0
-        # running_corrects = 0
-        
-        # for images, labels  in self.train_data_loader:
-        #     images = images.to(self.device)
-        #     labels = labels.to(self.device)
-
-        #     self.optimizer.zero_grad()
-            
-        #     with torch.set_grad_enabled(True):
-        #         outputs = self.model(images)
-        #         _, preds = torch.max(outputs, 1)
-        #         loss = self.criterion(outputs, labels)
-        #         loss.backward()
-        #         self.optimizer.step()
-        #         # track losses
-        #     epoch_loss += loss.item() * images.size(0)
-
-        #     # running_corrects += torch.sum(preds == labels).item()
-        #     running_corrects += torch.sum(preds == labels.data)
-        # # self.exp_lr_scheduler.step()
-                
-        # loss = epoch_loss/len(self.train_data_loader)
-        # # corrects = running_corrects/len(self.train_data_loader)
-        # epoch_acc = running_corrects.double() / len(self.train_data_loader)
-        # return loss, epoch_acc
     
     def _test_step(self):
         """Single test loop
         """        
-        # epoch_loss = 0
-        # running_corrects = 0
-        # # set to model to eval mode
-        # self.model.eval()
-        # for images, labels  in self.valid_data_loader:
-        #     images = images.to(self.device)
-        #     labels = labels.to(self.device)
-        #     with torch.inference_mode():
-        #         outputs = self.model(images)
-        #         _, preds = torch.max(outputs, 1)
-        #         # preds = self.model(images)
-        #         loss = self.criterion(outputs, labels)
-        #     epoch_loss += loss.item() * images.size(0)
-        #     # predicted = torch.argmax(torch.softmax(preds,dim=1),dim=1)
-        #     # running_corrects += torch.sum(preds == labels).item()
-        #     running_corrects += torch.sum(preds == labels.data)
-                    
-        #     # corrects = running_corrects/len(self.valid_data_loader)
-        # epoch_acc = running_corrects.double() / len(self.valid_data_loader)
-        # loss = epoch_loss/len(self.valid_data_loader)
-        # return epoch_acc, loss
 
         self.model.eval()
 
