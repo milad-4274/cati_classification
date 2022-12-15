@@ -43,10 +43,9 @@ cpu_n = args.cpu
 print(f"using {cpu_n} number of CPU core and {gpu_n} GPU(s)")
 
 search_space = {
-    "model": tune.choice(["vgg"]),
     "learning_rate": tune.loguniform(1e-3, 1e-1),
     "momentum": tune.uniform(0.1, 0.9),
-    "base_model": tune.choice(["resnet"]),
+    "base_model": tune.choice(["vgg"]),
     "loss": tune.choice(["cross", "focal"]),
     "hidden_units": tune.choice([128,256,512]),
     "drop_rate": tune.choice([0.1,0.5,0.9]),
