@@ -191,7 +191,7 @@ class PyTorchTrainable(tune.Trainable):
         }
 
 
-        self.model = model_mapper(base_model)
+        self.model = model_mapper[base_model]
         self.model.to(self.device)
 
         print("model", self.model)
