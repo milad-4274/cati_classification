@@ -181,7 +181,7 @@ class PyTorchTrainable(tune.Trainable):
         activation = config.get("activation", nn.ReLU())        
         base_model = config.get("base_model","resnet")
         loss = config.get("loss", "cross")
-        lr=config.get("learning_rate", 1e-2), 
+        lr=config.get("learning_rate", 1e-2)
         momentum=config.get("momentum", 0.9)
 
 
