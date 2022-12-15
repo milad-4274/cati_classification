@@ -194,7 +194,8 @@ class PyTorchTrainable(tune.Trainable):
         self.model = model_mapper[base_model]
         self.model.to(self.device)
 
-        print("model", self.model)
+        print("runnongmodel", self.model)
+        print("lr",lr)
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path,"running_model.txt"), "w") as f:
