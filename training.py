@@ -102,7 +102,7 @@ class Resnet(nn.Module):
             drop_rate: Dropout rate
             activation: Activation of hidden unit
         """
-        super(Resnet, self).__init__()
+        super().__init__()
 
         self.base_model = torchvision.models.resnet18(pretrained=True)
         num_ftrs = self.base_model.fc.in_features
@@ -127,7 +127,7 @@ class Resnet(nn.Module):
 
 class VGG16(nn.Module):
     def __init__(self, num_units, drop_rate, activation):
-        super(self).__init__()
+        super().__init__()
 
         self.base_model = torchvision.models.vgg16(pretrained=True,).features
         avg_pool = nn.AdaptiveAvgPool2d((7, 7))
