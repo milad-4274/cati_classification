@@ -48,7 +48,7 @@ search_space = {
     "momentum": tune.uniform(0.1, 0.9),
     "base_model": tune.choice(["resnet"]),
     "loss": tune.choice(["cross", "focal"]),
-    "hidden_units": tune.grid_search([128,256,512]),
+    "hidden_units": tune.choice([128,256,512]),
     "drop_rate": tune.choice([0.1,0.5,0.9]),
 
 
