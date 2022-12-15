@@ -50,7 +50,7 @@ search_space = {
     "loss": tune.choice(["cross", "focal"]),
     "hidden_units": tune.grid_search([128,256,512]),
     "drop_rate": tune.choice([0.1,0.5,0.9]),
-    
+
 
 }
 
@@ -86,7 +86,7 @@ tuner = tune.Tuner(
     run_config=air.RunConfig(
         progress_reporter=reporter,
         
-        stop=tune.stopper.CombinedStopeer(
+        stop=tune.stopper.CombinedStopper(
             tune.stopper.MaximumIterationStopper(100),
             tune.stopper.TrialPlateauStopper(metric="my_metric")
         )
