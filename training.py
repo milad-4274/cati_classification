@@ -129,28 +129,27 @@ class VGG16(nn.Module):
     def __init__(self, num_units, drop_rate, activation):
         super().__init__()
 
-        self.base_model = torchvision.models.vgg16(pretrained=True,).features
-        avg_pool = nn.AdaptiveAvgPool2d((7, 7))
-        flatten = nn.Flatten(1)
-        self.base_model = nn.Sequential(
-            self.base_model,
-            avg_pool,
-            flatten
-        )
+        self.base_model = torchvision.models.vgg16(pretrained=True,)
+
+
+        for param in self.base_model.parameters():
+            param.requires_grad = False
+
         num_ftrs = 512 * 7 * 7
-
-
-        self.base_model.fc = nn.Linear(num_ftrs, num_units)
-        self.drop1 = nn.Dropout(p=drop_rate)
-        self.fc1 = nn.Linear(num_units, 3)
-        self.model = nn.Sequential(
-            self.base_model,
+        
+        self.classifier = nn.Sequential(
+            nn.Linear(num_ftrs, num_units),
             activation,
-            self.fc1
+            nn.Dropout(p=drop_rate),
+            nn.Linear(num_units, num_units),
+            activation,
+            nn.Dropout(p=drop_rate),
+            nn.Linear(num_units, 3)
+
         )
 
     def forward(self,x):
-        return self.base_model(x)
+        return self.classifier(self.base_model.features(x))
 
 class PyTorchTrainable(tune.Trainable):
 
