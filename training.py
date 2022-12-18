@@ -116,10 +116,10 @@ class Resnet(nn.Module):
         # self.base_model = base_model
         # FC will be set as requires_grad=True by default
 
-        else:
+        # else:
             # self.model = copy.deepcopy(self.base_model)
             
-            self.base_model.fc = nn.Linear(num_ftrs, 3)
+        self.base_model.fc = nn.Linear(num_ftrs, 3)
         
     def forward(self, x):
         x = self.base_model(x)
@@ -129,15 +129,17 @@ class VGG16(nn.Module):
     def __init__(self, num_units, drop_rate, activation):
         super().__init__()
 
-        self.base_model = torchvision.models.vgg16(pretrained=True,)
+        self.base_model_ = torchvision.models.vgg16(pretrained=True,).features
+
+        # self.features = self.base_model.features
 
 
-        for param in self.base_model.parameters():
+        for param in self.base_model_.parameters():
             param.requires_grad = False
 
         num_ftrs = 512 * 7 * 7
         
-        self.classifier = nn.Sequential(
+        self.classifier_ = nn.Sequential(
             nn.Linear(num_ftrs, num_units),
             activation,
             nn.Dropout(p=drop_rate),
@@ -148,8 +150,20 @@ class VGG16(nn.Module):
 
         )
 
+        self.avgpool_ = nn.AdaptiveAvgPool2d((7, 7))
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(dir_path,"modelinfo.txt"), "w") as f:
+            f.write(self.base_model_.__repr__()+"\n\n")
+            f.write(self.avgpool_.__repr__()+"\n\n")
+            f.write(self.classifier_.__repr__()+"\n\n")
+
     def forward(self,x):
-        return self.classifier(self.base_model.features(x))
+        x = self.base_model_(x)
+        x = self.avgpool_(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier_(x)
+        return x
+        # return self.base_model_(x)
 
 class PyTorchTrainable(tune.Trainable):
 
