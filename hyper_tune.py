@@ -87,7 +87,7 @@ tuner = tune.Tuner(
         
         stop=tune.stopper.CombinedStopper(
             tune.stopper.MaximumIterationStopper(100),
-            tune.stopper.TrialPlateauStopper(metric="my_metric")
+            tune.stopper.TrialPlateauStopper(metric="tst_loss")
         )
         
         )
