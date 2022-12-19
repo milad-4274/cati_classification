@@ -92,16 +92,8 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
 
 class Resnet(nn.Module):
-    """Simple Neural Network"""
     def __init__(self):
-        """
-        Parameters:
-            base_model: Backbone/Pretrained Neural Network
-            base_fc_out: Output unit of the base model
-            num_units: Number of Input units of the hidden layer
-            drop_rate: Dropout rate
-            activation: Activation of hidden unit
-        """
+
         super().__init__()
 
         self.base_model = torchvision.models.resnet18(pretrained=True)
@@ -111,19 +103,11 @@ class Resnet(nn.Module):
         for param in self.base_model.parameters():
             param.requires_grad = False        
 
-        
-        # num_ftrs = self.base_model.fc.in_features
-        # self.base_model = base_model
-        # FC will be set as requires_grad=True by default
 
-        # else:
-            # self.model = copy.deepcopy(self.base_model)
-            
         self.base_model.fc = nn.Linear(num_ftrs, 3)
         
     def forward(self, x):
-        x = self.base_model(x)
-        return x
+        return self.base_model(x)
 
 class VGG16(nn.Module):
     def __init__(self, num_units, drop_rate, activation):
@@ -152,10 +136,6 @@ class VGG16(nn.Module):
 
         self.avgpool_ = nn.AdaptiveAvgPool2d((7, 7))
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(dir_path,"modelinfo.txt"), "w") as f:
-            f.write(self.base_model_.__repr__()+"\n\n")
-            f.write(self.avgpool_.__repr__()+"\n\n")
-            f.write(self.classifier_.__repr__()+"\n\n")
 
     def forward(self,x):
         x = self.base_model_(x)
@@ -167,10 +147,6 @@ class VGG16(nn.Module):
 
 class PyTorchTrainable(tune.Trainable):
 
-    # def load_info(self, data_loader,model):
-    #     self.trainable_data_loader = data_loader
-    #     self.trainable_model = model
-      
 
     def setup(self, config):
         """Set the network for training
@@ -207,8 +183,6 @@ class PyTorchTrainable(tune.Trainable):
         self.model = model_mapper[base_model]
         self.model.to(self.device)
 
-        print("runnongmodel", self.model)
-        print("lr",lr)
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path,"running_model.txt"), "w") as f:
