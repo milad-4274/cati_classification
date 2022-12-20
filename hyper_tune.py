@@ -79,7 +79,7 @@ tuner = tune.Tuner(
         num_samples=10,
         metric="tst_loss",
         mode="min",
-        max_concurrent_trials=10,
+        max_concurrent_trials=2,
         search_alg=search_alg
     ),
     run_config=air.RunConfig(
