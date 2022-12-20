@@ -3,19 +3,34 @@ from pathlib import Path
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+from textwrap import wrap
 
 def parse_folder_name(folder_name):
     splitted = folder_name.split(",")
-    base_model = splitted[0][-17:]
-    lr = splitted[1]
-    loss = splitted[2]
-    momentum = splitted[3].split("_")[0]
-    info = [base_model, lr,loss, momentum]
-    print(info)
-    return {spec.split('=')[0] : spec.split('=')[1] for spec in info}
+    print(f"splitted: {splitted}")
+    specs = {}
+    for i,part in enumerate(splitted):
+        part_splitted = part.split("=")
+        key = part_splitted[0]
+        val = part_splitted[1]
+        
+        if i == 0:
+            key = '_'.join(part_splitted[0].split("_")[-2:])
+        if i == len(splitted) -1 :
+            val = part_splitted[1].split("_")[0]
+        
+        specs[key] = val
+    return specs
 
 
-folder_of_trainable_results = "hyper_tune_res"
+
+
+folder_of_trainable_results = "PyTorchTrainable_2022-12-18_12-55-27"
+destination_foder = "hyper_results/vgg"
+if os.path.isdir(destination_foder):
+    pass
+else:
+    os.mkdir(destination_foder)
 
 result_folders = [file for file in os.listdir(folder_of_trainable_results) if os.path.isdir(os.path.join(folder_of_trainable_results,file))]
 print(len(result_folders))
@@ -24,7 +39,7 @@ for folder in result_folders:
     json_path = os.path.join(folder_of_trainable_results,folder, "result.json")
     print(json_path)
     specs = parse_folder_name(folder)
-    title_text = f"Model:{specs['base_model']}, lr: {specs['learning_rate']}, Loss function: {specs['loss']}, momentum: {specs['momentum']}"
+    title_text = f"hyperparameter info: {specs}"
     with open(json_path, "r") as json_file:
         iteration_results = [json.loads(line) for line in json_file.readlines() ]
         print(type(iteration_results), len(iteration_results))
@@ -36,7 +51,8 @@ for folder in result_folders:
             test_acc.append(float(iter["tst_acc"])) 
 
         fig,ax = plt.subplots(2,1,constrained_layout = True)
-        fig.suptitle(title_text)
+        fig.suptitle("\n".join(wrap(title_text,60)),size="small")
+        print(title_text)
         ax[0].plot(train_acc,label="train")
         ax[0].plot(test_acc,label="test")
         ax[0].set_xlabel("iterations")
@@ -52,5 +68,5 @@ for folder in result_folders:
         ax[1].set_title("loss values of train and test")
         ax[1].legend()
         
-        plt.savefig(folder+".png")
+        plt.savefig(destination_foder + "/" +folder+".png")
 

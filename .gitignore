@@ -6,4 +6,4 @@ __pycache__/
 
 res/*.pt
 hyper_tune_res/
-PyTorcgTrainable*
+PyTorchTrainable*
