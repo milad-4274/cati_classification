@@ -22,7 +22,7 @@ class MyDataset(Dataset):
         return len(self.subset)
 
 
-def load_data(batch_size=32, num_workers=4 ):
+def load_data(batch_size=32, num_workers=2 ):
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(dir_path,"MYCATI/")
