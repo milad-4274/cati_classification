@@ -194,7 +194,10 @@ class PyTorchTrainable(tune.Trainable):
             self.model.parameters(), 
             lr=lr, 
             momentum=momentum
-        )
+        ).to(self.device)
+
+        self.criterion = self.criterion.to(self.device)
+
 
         with open(os.path.join(dir_path,"running_lossoptim.txt"), "w") as f:
             f.write(self.criterion.__repr__() + "\n" + self.optimizer.__repr__())
