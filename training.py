@@ -194,7 +194,7 @@ class PyTorchTrainable(tune.Trainable):
             self.model.parameters(), 
             lr=lr, 
             momentum=momentum
-        ).to(self.device)
+        )
 
         self.criterion = self.criterion.to(self.device)
 
