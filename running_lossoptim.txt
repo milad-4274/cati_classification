@@ -1,15 +1,12 @@
-FocalLoss(
-  (weighted_cs): CrossEntropyLoss()
-  (cs): CrossEntropyLoss()
-)
+CrossEntropyLoss()
 SGD (
 Parameter Group 0
     dampening: 0
     differentiable: False
     foreach: None
-    lr: 0.053354586845774085
+    lr: 0.010009655452365073
     maximize: False
-    momentum: 0.5996383203992884
+    momentum: 0.47812468882215586
     nesterov: False
     weight_decay: 0
 )
