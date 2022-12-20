@@ -68,5 +68,5 @@ for folder in result_folders:
         ax[1].set_title("loss values of train and test")
         ax[1].legend()
         
-        plt.savefig(destination_foder + "/" +folder+".png")
+        plt.savefig(destination_foder + "/" +specs.__repr__()+".png")
 
